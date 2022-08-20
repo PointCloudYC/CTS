@@ -2,6 +2,8 @@
 
 Authors: Qing HAN, Chao YIN*, Yuan Liu, Yunyuan DENG, Peilin LIU
 
+To be released soon, stay tuned.
+
 ## Requirements
 
 We recommend using python3 and a virtual env. 
