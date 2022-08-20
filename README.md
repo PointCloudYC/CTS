@@ -21,7 +21,7 @@ Given an image of a  Traditonal Style (TS) image, predict the correct style, e.g
 
 ## Download the CTS dataset
 
-The dataset is hosted on onedrive, **download it [here (to be released soon)][xx]**.
+The dataset is hosted on onedrive, **download it [here (to be released soon)](xx)**.
 
 ## Train, evaluate and predict
 
