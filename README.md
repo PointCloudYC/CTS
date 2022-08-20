@@ -1,6 +1,6 @@
 # Towards Classification of Architectural Styles of Traditional Settlements using DL: A Dataset, a New Framework, and Its Interpretability
 
-Authors: Qing HAN, Chao YIN*, Yuan Liu, Yunyuan DENG, Peilin LIU
+Authors: Qing HAN, Chao YIN*, Yunyuan DENG, Peilin LIU
 
 To be released soon, stay tuned.
 
