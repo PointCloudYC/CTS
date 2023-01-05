@@ -1,0 +1,6 @@
+numpy
+Pillow
+tabulate
+tqdm
+torch>=1.2
+torchvision
