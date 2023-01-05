@@ -1,12 +1,11 @@
-# [Towards Classification of Architectural Styles of Traditional Settlements using DL: A Dataset, a New Framework, and Its Interpretability](https://www.mdpi.com/2072-4292/14/20/5250)
+# Classification of Architectural Styles of Traditional Settlements using DL
 
-[Paper](https://www.mdpi.com/2072-4292/14/20/5250)
-Authors: Qing HAN, Chao YIN*, Yunyuan DENG, Peilin LIU
+- [Towards Classification of Architectural Styles of Traditional Settlements using DL: A Dataset, a New Framework, and Its Interpretability](https://www.mdpi.com/2072-4292/14/20/5250), Qing HAN, Chao YIN*, Yunyuan DENG, Peilin LIU, Remote Sensing, 2022
 
-Classification of architectural style for Chinese traditional settlements (CTSs) has become a crucial task for developing and preserving settlements. Traditionally, the classification of CTSs primarily relies on manual work, which is inefficient and time-consuming. Inspired by the tremendous success of deep learning (DL), some recent studies attempted to apply DL networks such as convolution neural networks (CNNs) to achieve automated classification of the architecture styles. However, these studies suffer overfitting problems of the CNNs, leading to inferior classification performance. Moreover, most of the studies apply the CNNs as a black box providing limited interpretability. To address these limitations, a new DL classification framework is proposed to overcome the overfitting problem by transfer learning and learning-based data augmentation technique (i.e., AutoAugment). Furthermore, we also employ class activation map (CAM) visualization technique to help understand how the CNN classifiers work to abstract patterns from the input.
-
-Overview of the framework:
 ![Overview](images/fig1.jpg)
+
+- Abstract
+Classification of architectural style for Chinese traditional settlements (CTSs) has become a crucial task for developing and preserving settlements. Traditionally, the classification of CTSs primarily relies on manual work, which is inefficient and time-consuming. Inspired by the tremendous success of deep learning (DL), some recent studies attempted to apply DL networks such as convolution neural networks (CNNs) to achieve automated classification of the architecture styles. However, these studies suffer overfitting problems of the CNNs, leading to inferior classification performance. Moreover, most of the studies apply the CNNs as a black box providing limited interpretability. To address these limitations, a new DL classification framework is proposed to overcome the overfitting problem by transfer learning and learning-based data augmentation technique (i.e., AutoAugment). Furthermore, we also employ class activation map (CAM) visualization technique to help understand how the CNN classifiers work to abstract patterns from the input.
 
 ## Requirements
 
@@ -73,9 +72,11 @@ see the `run.sh`
 
 ## Citation
 
+```
 @article{CTS,
     Author = {Qing HAN, Chao YIN*, Yunyuan DENG, Peilin LIU},
     Title = {Towards Classification of Architectural Styles of Chinese Traditional Settlements using Deep Learning: A Dataset, a New Framework, and Its Interpretability},
     Journal = {Remote Sensing},
     Year = {2022}
    }
+```
