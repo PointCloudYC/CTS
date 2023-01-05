@@ -10,10 +10,10 @@ python function/evaluate.py --model_dir ../experiments/data_aug/
 
 
 # hyper-tuning
-python function/search_hyperparams.py 
+# python function/search_hyperparams.py 
 
 # select baseline models
-python function/search_models.py 
+# python function/search_models.py 
 
 # synthesize results
-python function/synthesize_results.py
+# python function/synthesize_results.py
