@@ -127,3 +127,16 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# cursor
+.cursor/**
+
+# data
+data/**
+
+
+# experiments
+experiments-*/
+
+# my analysis
+yc/**

@@ -2,6 +2,13 @@
 import argparse
 import logging
 import os
+import sys
+from pathlib import Path
+
+# Add project root to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
+
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -11,24 +18,28 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import torchvision.models as models
 from tqdm import tqdm
+from typing import Callable, Dict
+import torch.nn as nn
+from torch.utils.data import DataLoader
 
 import utils
 import model.net as net
-from model.net import model_factory, model_factory_pretraining
+# from model.net import model_factory, model_factory_pretraining
 import model.data_loader as data_loader
 from evaluate import evaluate
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', default='../data/256x256_ArchiStyle', help="Directory containing the dataset")
-# parser.add_argument('--model_dir', default='experiments/baseline_models/baseline_models_alexnet',
-#                     help="Directory containing params.json")
-parser.add_argument('--model_dir', default='../experiments-baseline/baseline_model/baseline_model_vggnet',
+parser.add_argument('--data_dir', default='data/ArchiStyle-v2', help="Directory containing the dataset")
+parser.add_argument('--model_name', default='alexnet', help="Model name, e.g. alexnet, vgg19, resnet50, or densenet121")
+parser.add_argument('--pretrained', action='store_true', help="Use pre-trained model weights for transfer learning")
+parser.add_argument('--model_dir', default='experiments-v1/alexnet',
                     help="Directory containing params.json")
 parser.add_argument('--restore_file', default=None, help="Optional, directory or file containing weights to reload before training")
-parser.add_argument('--model_name', default='vggnet', help="model names, e.g. alexnet, vggnet16, resnet50, or densenet or transfer_learning")  # 'best' or 'train'
+parser.add_argument('--gpu_id', type=int, default=0, help="GPU ID to use for training")
 
 
-def train(model, optimizer, loss_fn, dataloader, metrics, params):
+def train(model: nn.Module, optimizer: optim.Optimizer, loss_fn: Callable, dataloader: DataLoader,
+          metrics: Dict[str, Callable], params: utils.Params, device: torch.device) -> Dict[str, float]:
     """Train the model on `num_steps` batches
 
     Args:
@@ -52,9 +63,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params):
     with tqdm(total=len(dataloader)) as t:
         for i, (train_batch, labels_batch) in enumerate(dataloader):
             # move to GPU if available
-            if params.cuda:
-                train_batch, labels_batch = train_batch.cuda(
-                    non_blocking=True), labels_batch.cuda(non_blocking=True)
+            train_batch, labels_batch = train_batch.to(device), labels_batch.to(device)
             # convert to torch Variables
             train_batch, labels_batch = Variable(
                 train_batch), Variable(labels_batch)
@@ -124,8 +133,9 @@ def plot_train_val_curve(history, metric_name, model_dir):
     plt.show()
 
 
-def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_fn, metrics, params, model_dir,
-                       restore_file=None):
+def train_and_evaluate(model: nn.Module, train_dataloader: DataLoader, val_dataloader: DataLoader,
+                       optimizer: optim.Optimizer, loss_fn: Callable, metrics: Dict[str, Callable],
+                       params: utils.Params, model_dir: str, device: torch.device, restore_file: str = None):
     """Train the model and evaluate every epoch.
 
     Args:
@@ -151,13 +161,13 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
     history = []
     for epoch in range(params.num_epochs):
         # Run one epoch
-        logging.info("Epoch {}/{}".format(epoch + 1, params.num_epochs))
+        logging.info(f"Epoch {epoch + 1}/{params.num_epochs}")
 
         # compute number of batches in one epoch (one full pass over the training set)
-        train_metrics=train(model, optimizer, loss_fn, train_dataloader, metrics, params)
+        train_metrics=train(model, optimizer, loss_fn, train_dataloader, metrics, params, device)
 
         # Evaluate for one epoch on validation set
-        val_metrics = evaluate(model, loss_fn, val_dataloader, metrics, params)
+        val_metrics = evaluate(model, loss_fn, val_dataloader, metrics, params, device)
 
         # collect the metrics to history 
         history.append((train_metrics,val_metrics))
@@ -197,17 +207,33 @@ if __name__ == '__main__':
 
     # Load the parameters from json file
     args = parser.parse_args()
-    json_path = os.path.join(args.model_dir, 'params.json')
-    assert os.path.isfile(
-        json_path), "No json configuration file found at {}".format(json_path)
-    params = utils.Params(json_path)
+    model_dir = Path(args.model_dir)
+    params_path = model_dir / 'params.json'
+
+    # Create model directory if it doesn't exist
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load parameters
+    if params_path.is_file():
+        logging.info(f"Loading parameters from {params_path}")
+        params = utils.Params(params_path)
+    else:
+        logging.info("No params.json found, using default configuration.")
+        default_params_path = Path(__file__).parent.parent / 'config' / 'params.json'
+        params = utils.Params(default_params_path)
+        # Save the default parameters to the model directory for reproducibility
+        utils.save_dict_to_json(params.dict, params_path)
+        logging.info(f"Saved default parameters to {params_path}")
+
 
     # use GPU if available
-    params.cuda = torch.cuda.is_available()
+    use_cuda = torch.cuda.is_available()
+    device = torch.device(f"cuda:{args.gpu_id}" if use_cuda else "cpu")
+    params.device = device
 
     # Set the random seed for reproducible experiments
     torch.manual_seed(230)
-    if params.cuda:
+    if use_cuda:
         torch.cuda.manual_seed(230)
 
     # Set the logger
@@ -217,26 +243,20 @@ if __name__ == '__main__':
     logging.info("Loading the datasets...")
 
     # fetch dataloaders
+    data_loader_params = data_loader.DataLoaderParams(
+        batch_size=params.batch_size,
+        num_workers=params.num_workers,
+        cuda=use_cuda
+    )
     dataloaders = data_loader.fetch_dataloader(
-        ['train', 'val'], args.data_dir, params)
+        ['train', 'val'], args.data_dir, data_loader_params)
     train_dl = dataloaders['train']
     val_dl = dataloaders['val']
 
     logging.info("- done.")
 
-
-    # create a model 
-    # baseline methods (4 traditional methods + 1 resnet pretraining model)
-    # model = model_factory(args.model_name, params, pretrained=False)
-    # model = model_factory_pretraining(args.model_name, params, pretrained=False)
-
-    # transfer learning models
-    model = model_factory_pretraining(args.model_name, params, pretrained=False)
-
     # Define the model and optimizer
-    # model = net.Net(params).cuda() if params.cuda else net.Net(params)
-    model = (model).cuda() if params.cuda else model
-
+    model = net.get_model(args.model_name, pretrained=args.pretrained).to(device)
     optimizer = optim.Adam(model.parameters(), lr=params.learning_rate)
 
     # fetch loss function and metrics
@@ -246,5 +266,5 @@ if __name__ == '__main__':
 
     # Train the model
     logging.info("Starting training for {} epoch(s)".format(params.num_epochs))
-    train_and_evaluate(model, train_dl, val_dl, optimizer, loss_fn, metrics, params, args.model_dir,
+    train_and_evaluate(model, train_dl, val_dl, optimizer, loss_fn, metrics, params, args.model_dir, device,
                        args.restore_file)

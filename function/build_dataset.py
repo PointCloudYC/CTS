@@ -1,10 +1,11 @@
-"""Split the dataset into train/val/test and resize images to 256x250
+# this is obsolete, instead use the scripts/convert_dataset.sh
+"""Split the dataset into train/val/test and resize images to 256x256
 
-The SIGNS dataset comes into the following format:
-    train_signs/
+The ArchiStyle dataset comes into the following format:
+    train/
         0_28.jpg
         ...
-    test_signs/
+    test/
         0_72.jpg
         ...
 
@@ -12,9 +13,9 @@ Original images have diff. size.
 Resizing to (256,256) reduces the dataset size, and loading smaller images
 makes training faster.
 
-We already have a test set created, so we only need to split "train_signs" into train and val sets.
+We already have a test set created, so we only need to split "train" into train and val sets.
 Because we don't have a lot of images and we want that the statistics on the val set be as
-representative as possible, we'll take 20% of "train_signs" as val set.
+representative as possible, we'll take 20% of "train" as val set.
 """
 
 import argparse
@@ -27,8 +28,8 @@ from tqdm import tqdm
 SIZE = 256
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', default='../data/ArchiStyle', help="Directory with the dataset")
-parser.add_argument('--output_dir', default='../data/256x256_ArchiStyle', help="Where to write the new data")
+parser.add_argument('--data_dir', default='../data/ArchiStyle-v1', help="Directory with the dataset")
+parser.add_argument('--output_dir', default='../data/256x256_ArchiStyle-v1', help="Where to write the new data")
 
 
 def resize_and_save(filename, output_dir, size=SIZE):
