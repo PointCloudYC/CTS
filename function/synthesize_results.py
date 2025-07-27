@@ -8,7 +8,7 @@ from tabulate import tabulate
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--parent_dir', default='../experiments-TL',
+parser.add_argument('--parent_dir', default='experiments-v1',
                     help='Directory containing results of experiments')
 
 

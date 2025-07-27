@@ -3,9 +3,11 @@
 # runs training and evaluation on the ArchiStyle-v1 dataset
 
 DATA_DIR="data/ArchiStyle-v2"
-MODELS=("alexnet" "resnet50" "densenet121")
+MODELS=("resnet50")
+# MODELS=("alexnet" "resnet50" "densenet121")
 EXPERIMENT_NAME="v2"
 GPU_ID=1
+SAVE_CONFUSION_MATRIX=true
 
 for MODEL_NAME in "${MODELS[@]}"; do
   # Run model from scratch
@@ -16,13 +18,14 @@ for MODEL_NAME in "${MODELS[@]}"; do
   --gpu_id ${GPU_ID} \
   --data_dir ${DATA_DIR} \
   --model_name ${MODEL_NAME} \
-  --model_dir ${MODEL_DIR} \
-  --pretrained 
+  --model_dir ${MODEL_DIR}
+  
 
   python function/evaluate.py \
   --gpu_id ${GPU_ID} \
   --data_dir ${DATA_DIR} \
   --model_dir ${MODEL_DIR}
+  --save_confusion_matrix
 
   # Run pre-trained model
   MODEL_DIR="experiments-${EXPERIMENT_NAME}/${MODEL_NAME}_pretrained"
@@ -38,5 +41,7 @@ for MODEL_NAME in "${MODELS[@]}"; do
   python function/evaluate.py \
   --gpu_id ${GPU_ID} \
   --data_dir ${DATA_DIR} \
-  --model_dir ${MODEL_DIR}
+  --model_dir ${MODEL_DIR} \
+  --pretrained \
+  --save_confusion_matrix
 done

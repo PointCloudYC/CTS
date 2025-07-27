@@ -1,3 +1,4 @@
+import os
 import logging
 import random
 from dataclasses import dataclass
@@ -24,6 +25,10 @@ ID_TO_NAMES: Dict[str, str] = {
     "4":"su",
     "5":"wan"
 }
+
+# Define class names based on your dataset's convention
+CLASS_NAMES = [ID_TO_NAMES[str(i)] for i in range(len(ID_TO_NAMES))]
+
 
 @dataclass
 class DataLoaderParams:
@@ -70,43 +75,29 @@ eval_transformer: transforms.Compose = transforms.Compose([
     # transforms.Normalize([0, 0, 0], [1, 1, 1]),
     ])  # transform it into a torch tensor
 
-class ArchiStyleDataset(Dataset[Tuple[Tensor, int]]):
+class ArchiStyleDataset(Dataset):
     """
     A standard PyTorch definition of Dataset which defines the functions __len__ and __getitem__.
     """
-    def __init__(self, data_dir: str, transform: transforms.Compose):
+
+    def __init__(self, data_dir, transform):
         """
         Store the filenames of the jpgs to use. Specifies transforms to apply on images.
 
         Args:
             data_dir: (string) directory containing the dataset
             transform: (torchvision.transforms) transformation to apply on image
-            
-        Raises:
-            FileNotFoundError: If the data directory does not exist.
         """
-        super().__init__()
-        data_path = Path(data_dir)
-        if not data_path.is_dir():
-            raise FileNotFoundError(f"Data directory not found: {data_dir}")
-
-        self.filenames: List[Path] = sorted(
-            list(data_path.glob("*.jpg"))
-            + list(data_path.glob("*.jpeg"))
-            + list(data_path.glob("*.png"))
-        )
-        if not self.filenames:
-            logger.warning(f"No image files found in {data_dir}")
-
-        # self.labels = [int(os.path.split(filename)[-1][0]) for filename in self.filenames]
-        self.labels: List[int] = [int(f.name[0]) for f in self.filenames]
+        self.data_dir = Path(data_dir)
         self.transform = transform
-        logger.info(f"Loaded {len(self.filenames)} images from {data_dir}")
+        self.image_filenames = [f for f in os.listdir(self.data_dir) if f.endswith(('.jpg', '.jpeg', '.png'))]
+        self.labels = [int(f.split('_')[0]) for f in self.image_filenames]
+        self.classes = CLASS_NAMES
 
 
-    def __len__(self) -> int:
-        """Return the total number of images in the dataset."""
-        return len(self.filenames)
+    def __len__(self):
+        # return size of dataset
+        return len(self.image_filenames)
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
         """
@@ -119,17 +110,20 @@ class ArchiStyleDataset(Dataset[Tuple[Tensor, int]]):
             image: (Tensor) transformed image
             label: (int) corresponding label of image
         """
-        image_path = self.filenames[idx]
+        image_path = self.data_dir / self.image_filenames[idx]
         try:
             image = Image.open(image_path).convert("RGB")
             transformed_image = self.transform(image)
             return transformed_image, self.labels[idx]
         except (IOError, UnidentifiedImageError) as e:
             logger.error(f"Error loading image {image_path}: {e}")
+            # Return a dummy tensor and label, or handle appropriately
+            # This part depends on how you want to handle corrupted images
+            # For now, we re-raise the exception.
             raise
 
 
-def fetch_dataloader(types: List[str], data_dir: str, params: DataLoaderParams) -> Dict[str, DataLoader[Tuple[Tensor, int]]]:
+def fetch_dataloader(types: List[str], data_dir: str, params: DataLoaderParams) -> Dict[str, DataLoader]:
     """
     Fetches the DataLoader object for each type in types from data_dir.
 
@@ -141,23 +135,28 @@ def fetch_dataloader(types: List[str], data_dir: str, params: DataLoaderParams) 
     Returns:
         data: (dict) contains the DataLoader object for each type in types
     """
-    dataloaders: Dict[str, DataLoader[Tuple[Tensor, int]]] = {}
+    dataloaders: Dict[str, DataLoader] = {}
     data_path = Path(data_dir)
 
     for split in ['train', 'val', 'test']:
         if split in types:
             split_path = data_path / split
             logger.info(f"Creating DataLoader for '{split}' split from {split_path}")
+            if not split_path.is_dir():
+                logger.warning(f"Directory not found for split '{split}': {split_path}")
+                continue
 
-            # use the train_transformer if training data, else use eval_transformer without random flip
-            if split == 'train':
-                transformer = train_transformer
-                shuffle = True
-            else:
-                transformer = eval_transformer
-                shuffle = False
+            # use the train_transformer if training data, else use eval_transformer
+            transformer = train_transformer if split == 'train' else eval_transformer
+            shuffle = split == 'train'
             
             dataset = ArchiStyleDataset(str(split_path), transformer)
+            
+            # Check if dataset is empty
+            if not len(dataset):
+                logger.warning(f"No images found in {split_path}, skipping dataloader creation.")
+                continue
+
             dl = DataLoader(dataset, batch_size=params.batch_size, shuffle=shuffle, num_workers=params.num_workers, pin_memory=params.cuda)
             dataloaders[split] = dl
 

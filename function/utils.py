@@ -144,9 +144,12 @@ def load_checkpoint(checkpoint, model, optimizer=None):
         optimizer: (torch.optim) optional: resume optimizer from checkpoint
     """
     if not os.path.exists(checkpoint):
-        raise("File doesn't exist {}".format(checkpoint))
-    checkpoint = torch.load(checkpoint)
-    model.load_state_dict(checkpoint['state_dict'])
+        raise FileNotFoundError(f"File doesn't exist {checkpoint}")
+    checkpoint = torch.load(checkpoint, map_location=torch.device('cpu'))
+    
+    # When loading a pretrained model, we only load the state_dict of the classifier.
+    # The `strict=False` argument allows us to load only the matching keys.
+    model.load_state_dict(checkpoint['state_dict'], strict=False)
 
     if optimizer:
         optimizer.load_state_dict(checkpoint['optim_dict'])

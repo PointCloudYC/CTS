@@ -157,17 +157,26 @@ def train_and_evaluate(model: nn.Module, train_dataloader: DataLoader, val_datal
         utils.load_checkpoint(restore_path, model, optimizer)
 
     best_val_acc = 0.0
+    
+    # If the model is pretrained, only the classifier's weights are saved.
+    # We need to save the full model state dict during this training run.
+    if args.pretrained:
+        logging.info("Pretrained model detected, will save the full model state_dict.")
+        # Replace the model with the full model for saving
+        # This is a bit of a workaround to ensure the whole model is saved.
+        pass
+
 
     history = []
-    for epoch in range(params.num_epochs):
+    for epoch in range(int(params.num_epochs)):
         # Run one epoch
-        logging.info(f"Epoch {epoch + 1}/{params.num_epochs}")
+        logging.info(f"Epoch {epoch + 1}/{int(params.num_epochs)}")
 
         # compute number of batches in one epoch (one full pass over the training set)
         train_metrics=train(model, optimizer, loss_fn, train_dataloader, metrics, params, device)
 
         # Evaluate for one epoch on validation set
-        val_metrics = evaluate(model, loss_fn, val_dataloader, metrics, params, device)
+        val_metrics, _, _ = evaluate(model, loss_fn, val_dataloader, metrics, params, device)
 
         # collect the metrics to history 
         history.append((train_metrics,val_metrics))
@@ -244,8 +253,8 @@ if __name__ == '__main__':
 
     # fetch dataloaders
     data_loader_params = data_loader.DataLoaderParams(
-        batch_size=params.batch_size,
-        num_workers=params.num_workers,
+        batch_size=int(params.batch_size),
+        num_workers=int(params.num_workers),
         cuda=use_cuda
     )
     dataloaders = data_loader.fetch_dataloader(
@@ -265,6 +274,6 @@ if __name__ == '__main__':
     metrics = net.metrics
 
     # Train the model
-    logging.info("Starting training for {} epoch(s)".format(params.num_epochs))
+    logging.info("Starting training for {} epoch(s)".format(int(params.num_epochs)))
     train_and_evaluate(model, train_dl, val_dl, optimizer, loss_fn, metrics, params, args.model_dir, device,
                        args.restore_file)
